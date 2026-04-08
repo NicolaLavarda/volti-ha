@@ -97,12 +97,12 @@ class MQTTManager:
             client.subscribe(f"{NODE_ID}/+/switch/set")
             logger.info("Sottoscritto a %s/+/switch/set", NODE_ID)
         else:
-            logger.error("Connessione MQTT fallita con codice: %d", rc)
+            logger.error("Connessione MQTT fallita con codice: %s", rc)
 
     def _on_disconnect(self, client, userdata, flags, rc, properties=None):
         self.connected = False
         if rc != 0:
-            logger.warning("Disconnessione MQTT inattesa (codice=%d). Tentativo di riconnessione...", rc)
+            logger.warning("Disconnessione MQTT inattesa (codice=%s). Tentativo di riconnessione...", rc)
 
     def _on_message(self, client, userdata, msg):
         """Gestisce i comandi ricevuti da HA (es. switch on/off)."""

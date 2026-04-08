@@ -1,5 +1,5 @@
 name: "Volti HA"
-version: "1.0.4"
+version: "1.0.5"
 slug: "volti_ha"
 description: "Riconoscimento facciale in tempo reale per telecamere Home Assistant con modello SVM personalizzato"
 arch:
