@@ -1,0 +1,25 @@
+configuration:
+  mqtt_host:
+    name: Host MQTT
+    description: "Hostname del broker MQTT. Il default è l'add-on Mosquitto interno."
+  mqtt_port:
+    name: Porta MQTT
+    description: "Porta del broker MQTT."
+  mqtt_user:
+    name: Utente MQTT
+    description: "Username per l'autenticazione MQTT (lascia vuoto se non richiesto)."
+  mqtt_password:
+    name: Password MQTT
+    description: "Password per l'autenticazione MQTT (lascia vuoto se non richiesto)."
+  scan_interval_seconds:
+    name: Intervallo Scansione
+    description: "Secondi tra ogni analisi di uno snapshot dalla telecamera (1-30)."
+  min_confidence:
+    name: Confidenza Minima
+    description: "Soglia minima di confidenza per considerare un volto come riconosciuto (0.1-1.0)."
+  face_detection_model:
+    name: Modello di Rilevamento
+    description: "Modello per la detection dei volti. 'hog' è più veloce, 'cnn' è più preciso ma più lento."
+  log_level:
+    name: Livello Log
+    description: "Livello di verbosità dei log."

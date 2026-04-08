@@ -1,0 +1,21 @@
+#include <tunables/global>
+
+profile volti_ha flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  # Accesso alla rete per MQTT e API HA
+  network inet tcp,
+  network inet udp,
+  network inet6 tcp,
+  network inet6 udp,
+
+  # Accesso ai file necessari
+  /data/** rw,
+  /app/** r,
+  /run/** rw,
+  /tmp/** rw,
+
+  # Python
+  /usr/bin/python3 ix,
+  /usr/lib/python3*/** r,
+}

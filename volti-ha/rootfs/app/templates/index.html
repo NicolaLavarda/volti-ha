@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Volti HA - Face Recognition</title>
+  <meta name="description" content="Riconoscimento facciale in tempo reale per Home Assistant">
+  <link rel="stylesheet" href="{{ ingress_path }}/static/style.css">
+  <script>window.INGRESS_PATH = "{{ ingress_path }}";</script>
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- ============================
+         HEADER
+         ============================ -->
+    <header class="app-header">
+      <h1>
+        <span class="icon">🎭</span>
+        Volti HA
+      </h1>
+      <div class="status-badges">
+        <span id="mqttBadge" class="badge badge-warning"><span>●</span> MQTT ...</span>
+        <span id="modelBadge" class="badge badge-warning"><span>●</span> Modello ...</span>
+      </div>
+    </header>
+
+    <!-- ============================
+         TABS NAVIGATION
+         ============================ -->
+    <div class="tabs">
+      <button class="tab active" data-tab="cameras" onclick="switchTab('cameras')">
+        📹 Telecamere
+      </button>
+      <button class="tab" data-tab="model" onclick="switchTab('model')">
+        🧠 Modello
+      </button>
+      <button class="tab" data-tab="settings" onclick="switchTab('settings')">
+        ⚙️ Impostazioni
+      </button>
+    </div>
+
+    <!-- ============================
+         TAB: TELECAMERE
+         ============================ -->
+    <div id="tab-cameras" class="tab-content active">
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2 style="font-size:1.1rem; font-weight:600;">Telecamere Configurate</h2>
+        <button class="btn btn-primary" onclick="openAddCameraModal()">
+          ➕ Aggiungi Telecamera
+        </button>
+      </div>
+
+      <div id="camerasList">
+        <div class="empty-state">
+          <span class="empty-icon">📹</span>
+          <p>Caricamento...</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================
+         TAB: MODELLO
+         ============================ -->
+    <div id="tab-model" class="tab-content">
+
+      <h2 style="font-size:1.1rem; font-weight:600; margin-bottom:20px;">Classificatore Facciale</h2>
+
+      <!-- Upload Zone -->
+      <div id="uploadZone" class="upload-zone">
+        <span class="upload-icon">📤</span>
+        <div class="upload-text">
+          Trascina qui il file <strong>classificatore_volti_HA.pkl</strong>
+        </div>
+        <div class="upload-hint">oppure clicca per selezionarlo</div>
+        <input type="file" id="modelFileInput" accept=".pkl" style="display:none">
+      </div>
+
+      <!-- Model Info -->
+      <div id="modelInfoContainer">
+        <div class="empty-state" style="padding: 24px;">
+          <span class="empty-icon">🧠</span>
+          <p>Caricamento info modello...</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================
+         TAB: IMPOSTAZIONI
+         ============================ -->
+    <div id="tab-settings" class="tab-content">
+
+      <h2 style="font-size:1.1rem; font-weight:600; margin-bottom:20px;">Impostazioni & Log</h2>
+
+      <!-- Info card -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px;">ℹ️ Configurazione</div>
+        <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.7;">
+          Le impostazioni principali (MQTT, soglia confidenza, modello di detection, intervallo)
+          si configurano dalla pagina dell'add-on in Home Assistant 
+          <strong>Impostazioni → Add-on → Volti HA → Configurazione</strong>.
+          <br>Dopo aver modificato i valori, riavvia l'add-on per applicare le modifiche.
+        </p>
+      </div>
+
+      <!-- Sezione Targhe (disabilitata) -->
+      <div class="card section-disabled" style="min-height:120px;">
+        <div class="card-title">🚗 Riconoscimento Targhe</div>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:10px;">
+          Analisi delle targhe dei veicoli per identificazione automatica.
+        </p>
+      </div>
+
+      <!-- Logs -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📋 Log in Tempo Reale</div>
+          <button class="btn btn-ghost btn-sm" onclick="loadLogs()">🔄 Aggiorna</button>
+        </div>
+        <div id="logsContainer" class="log-container">
+          <div class="log-line" style="color:var(--text-muted)">Caricamento log...</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ============================
+       MODAL: AGGIUNGI TELECAMERA
+       ============================ -->
+  <div id="addCameraModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-title">📹 Aggiungi Telecamera</div>
+
+      <!-- Tipo sorgente -->
+      <div class="form-group">
+        <label>Tipo di Sorgente</label>
+        <div class="source-toggle">
+          <button class="active" data-source="ha_entity" onclick="switchSourceType('ha_entity')">
+            🏠 Entità HA
+          </button>
+          <button data-source="url" onclick="switchSourceType('url')">
+            🌐 URL Diretto
+          </button>
+        </div>
+      </div>
+
+      <!-- Sorgente: Entità HA -->
+      <div id="sourceHaEntity">
+        <div class="form-group">
+          <label>Telecamera Home Assistant</label>
+          <select id="haCameraSelect" class="form-control">
+            <option value="">Caricamento telecamere...</option>
+          </select>
+          <div class="form-hint">Seleziona una telecamera dalle entità di Home Assistant</div>
+        </div>
+      </div>
+
+      <!-- Sorgente: URL Diretto -->
+      <div id="sourceUrl" style="display:none;">
+        <div class="form-group">
+          <label>URL Snapshot</label>
+          <input type="url" id="cameraUrl" class="form-control"
+                 placeholder="http://192.168.1.100/cgi-bin/api.cgi?cmd=Snap&channel=0">
+          <div class="form-hint">URL completo per ottenere uno snapshot JPEG dalla telecamera</div>
+        </div>
+      </div>
+
+      <!-- Nome -->
+      <div class="form-group">
+        <label>Nome Telecamera</label>
+        <input type="text" id="cameraName" class="form-control"
+               placeholder="Es: Telecamera Carraio">
+      </div>
+
+      <!-- Intervallo -->
+      <div class="form-group">
+        <label>Intervallo di Scansione (secondi)</label>
+        <div class="slider-group">
+          <input type="range" id="cameraInterval" min="1" max="30" value="2"
+                 oninput="document.getElementById('intervalValue').textContent = this.value + 's'">
+          <span id="intervalValue" class="slider-value">2s</span>
+        </div>
+        <div class="form-hint">Ogni quanti secondi catturare e analizzare un frame</div>
+      </div>
+
+      <!-- Azioni -->
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeAddCameraModal()">Annulla</button>
+        <button class="btn btn-primary" onclick="addCamera()">➕ Aggiungi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="{{ ingress_path }}/static/app.js"></script>
+</body>
+</html>

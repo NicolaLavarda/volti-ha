@@ -1,0 +1,45 @@
+name: "Volti HA"
+version: "1.0.0"
+slug: "volti_ha"
+description: "Riconoscimento facciale in tempo reale per telecamere Home Assistant con modello SVM personalizzato"
+arch:
+  - amd64
+  - aarch64
+url: "https://github.com/NicolaLavarda/volti-ha"
+
+startup: application
+boot: manual
+
+ingress: true
+ingress_port: 8099
+panel_icon: "mdi:face-recognition"
+panel_title: "Volti HA"
+
+homeassistant_api: true
+hassio_api: true
+
+map:
+  - type: share
+    read_only: false
+  - type: media
+    read_only: false
+
+options:
+  mqtt_host: "core-mosquitto"
+  mqtt_port: 1883
+  mqtt_user: ""
+  mqtt_password: ""
+  scan_interval_seconds: 2
+  min_confidence: 0.70
+  face_detection_model: "hog"
+  log_level: "info"
+
+schema:
+  mqtt_host: str
+  mqtt_port: port
+  mqtt_user: "str?"
+  mqtt_password: "password?"
+  scan_interval_seconds: "int(1,30)"
+  min_confidence: "float(0.1,1.0)"
+  face_detection_model: "list(hog|cnn)"
+  log_level: "list(debug|info|warning|error)"
