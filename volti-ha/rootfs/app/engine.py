@@ -235,7 +235,7 @@ class AnalysisEngine:
 
             # Font - usa default se non disponibile
             try:
-                font = ImageFont.truetype("/usr/share/fonts/ttf-dejavu/DejaVuSans-Bold.ttf", 20)
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
             except (IOError, OSError):
                 font = ImageFont.load_default()
 
