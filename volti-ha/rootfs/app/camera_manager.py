@@ -56,9 +56,18 @@ class CameraWorker:
         self.running = True
         self._stop_event.clear()
         
-        # Inizializza la sessione come in codeproject_analyzer_loop_nuovo.py
+        # Inizializza la sessione con una strategia di retry più robusta
         self.session = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(max_retries=3)
+        from urllib3.util.retry import Retry
+        
+        # Aggiungiamo un backoff_factor: se fallisce, aspetta 0.3s, poi 0.6s, poi 1.2s...
+        # Questo evita di saturare la telecamera se ha un piccolo glitch.
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=0.3,
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        adapter = requests.adapters.HTTPAdapter(max_retries=retry_strategy)
         self.session.mount('http://', adapter)
         self.session.mount('https://', adapter)
 

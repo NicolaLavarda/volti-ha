@@ -99,9 +99,13 @@ def get_url_snapshot(url: str, session: requests.Session | None = None) -> bytes
     Returns:
         Bytes dell'immagine JPEG, o None in caso di errore.
     """
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    }
     try:
         req_func = session.get if session else requests.get
-        response = req_func(url, timeout=10)
+        response = req_func(url, headers=headers, timeout=10)
         response.raise_for_status()
         return response.content
     except Exception as e:
