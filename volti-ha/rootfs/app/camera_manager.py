@@ -7,6 +7,7 @@ Si ispira al loop principale di codeproject_analyzer_loop_nuovo.py (righe 500-52
 import time
 import logging
 import threading
+import requests
 from datetime import datetime
 
 from engine import AnalysisEngine, AnalysisResult
@@ -36,6 +37,7 @@ class CameraWorker:
         self.last_error: str | None = None
         self.frames_analyzed = 0
         self._stop_event = threading.Event()
+        self.session: requests.Session | None = None
 
     @property
     def camera_id(self) -> str:
@@ -53,6 +55,13 @@ class CameraWorker:
 
         self.running = True
         self._stop_event.clear()
+        
+        # Inizializza la sessione come in codeproject_analyzer_loop_nuovo.py
+        self.session = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(max_retries=3)
+        self.session.mount('http://', adapter)
+        self.session.mount('https://', adapter)
+
         self.thread = threading.Thread(
             target=self._analysis_loop,
             name=f"cam_{self.camera_id}",
@@ -79,9 +88,9 @@ class CameraWorker:
             source = self.config.get("source", "")
 
             if source_type == "ha_entity":
-                return get_camera_snapshot(source)
+                return get_camera_snapshot(source, session=self.session)
             else:
-                return get_url_snapshot(source)
+                return get_url_snapshot(source, session=self.session)
 
         except Exception as e:
             self.last_error = str(e)
@@ -102,6 +111,7 @@ class CameraWorker:
         )
 
         while self.running and not self._stop_event.is_set():
+            start_time = time.time()
             try:
                 # 1. Cattura snapshot
                 snapshot = self._get_snapshot()
@@ -147,9 +157,18 @@ class CameraWorker:
                     "Errore nel loop di '%s': %s", self.camera_name, e
                 )
 
-            # Attendi prima del prossimo ciclo
-            self._stop_event.wait(timeout=interval)
+            # Calcola il tempo di analisi e determina l'attesa
+            elapsed = time.time() - start_time
+            # Se interval è 0, wait_time sarà 0.03 (delay minimo di sicurezza di 30ms)
+            wait_time = max(0.03, interval - elapsed)
+            
+            logger.debug("Camera '%s' - Tempo analisi: %.2fs, Attesa: %.2fs", self.camera_name, elapsed, wait_time)
+            self._stop_event.wait(timeout=wait_time)
 
+        if self.session:
+            self.session.close()
+            self.session = None
+            
         logger.info("Loop terminato per '%s'.", self.camera_name)
 
     def get_status(self) -> dict:
@@ -265,6 +284,26 @@ class CameraManager:
         """Callback invocato da MQTT quando HA invia un comando switch."""
         logger.info("Comando switch da HA: %s -> %s", camera_id, "ON" if state else "OFF")
         self.toggle_camera(camera_id, state)
+
+    def update_camera(self, camera_id: str, new_config: dict):
+        """Aggiorna la configurazione di una telecamera e riavvia il worker se necessario."""
+        with self._lock:
+            if camera_id not in self.workers:
+                return
+
+            worker = self.workers[camera_id]
+            was_running = worker.running
+            
+            if was_running:
+                logger.info("Riavvio worker '%s' per aggiornamento configurazione...", camera_id)
+                worker.stop()
+            
+            # Crea un nuovo worker con la nuova configurazione
+            new_worker = CameraWorker(new_config, self.engine, self.mqtt)
+            self.workers[camera_id] = new_worker
+            
+            if was_running:
+                new_worker.start()
 
     def get_all_status(self) -> list:
         """Restituisce lo stato di tutte le telecamere."""

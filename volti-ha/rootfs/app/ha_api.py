@@ -58,19 +58,21 @@ def get_available_cameras() -> list:
         return []
 
 
-def get_camera_snapshot(entity_id: str) -> bytes | None:
+def get_camera_snapshot(entity_id: str, session: requests.Session | None = None) -> bytes | None:
     """
     Ottiene uno snapshot JPEG dalla telecamera tramite la Core API.
     
     Args:
         entity_id: L'entity_id della telecamera (es. 'camera.carraio')
+        session: Sessione requests opzionale per riutilizzare la connessione.
     
     Returns:
         Bytes dell'immagine JPEG, o None in caso di errore.
     """
     try:
         url = f"{HA_API_BASE}/camera_proxy/{entity_id}"
-        response = requests.get(url, headers={
+        req_func = session.get if session else requests.get
+        response = req_func(url, headers={
             "Authorization": f"Bearer {SUPERVISOR_TOKEN}",
         }, timeout=10)
         response.raise_for_status()
@@ -86,18 +88,20 @@ def get_camera_snapshot(entity_id: str) -> bytes | None:
         return None
 
 
-def get_url_snapshot(url: str) -> bytes | None:
+def get_url_snapshot(url: str, session: requests.Session | None = None) -> bytes | None:
     """
     Ottiene uno snapshot JPEG da un URL diretto.
     
     Args:
         url: URL completo per ottenere lo snapshot (es. URL Reolink)
+        session: Sessione requests opzionale per riutilizzare la connessione.
     
     Returns:
         Bytes dell'immagine JPEG, o None in caso di errore.
     """
     try:
-        response = requests.get(url, timeout=10)
+        req_func = session.get if session else requests.get
+        response = req_func(url, timeout=10)
         response.raise_for_status()
         return response.content
     except Exception as e:

@@ -134,7 +134,8 @@
        ============================ -->
   <div id="addCameraModal" class="modal-overlay">
     <div class="modal">
-      <div class="modal-title">📹 Aggiungi Telecamera</div>
+      <div class="modal-title" id="modalTitle">📹 Aggiungi Telecamera</div>
+      <input type="hidden" id="editCameraId">
 
       <!-- Tipo sorgente -->
       <div class="form-group">
@@ -181,17 +182,20 @@
       <div class="form-group">
         <label>Intervallo di Scansione (secondi)</label>
         <div class="slider-group">
-          <input type="range" id="cameraInterval" min="1" max="30" value="2"
-                 oninput="document.getElementById('intervalValue').textContent = this.value + 's'">
+          <input type="range" id="cameraInterval" min="0" max="30" value="2"
+                 oninput="updateIntervalLabel(this.value)">
           <span id="intervalValue" class="slider-value">2s</span>
         </div>
-        <div class="form-hint">Ogni quanti secondi catturare e analizzare un frame</div>
+        <div id="intervalHint" class="form-hint">Ogni quanti secondi catturare e analizzare un frame.</div>
+        <div id="continuousHint" class="alert alert-info" style="display:none; margin-top:10px; font-size:0.75rem;">
+          <strong>Modalità Continua:</strong> Il sistema analizzerà i frame uno dopo l'altro senza pause (delay minimo 30ms).
+        </div>
       </div>
 
       <!-- Azioni -->
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="closeAddCameraModal()">Annulla</button>
-        <button class="btn btn-primary" onclick="addCamera()">➕ Aggiungi</button>
+        <button class="btn btn-primary" id="saveCameraButton" onclick="saveCamera()">➕ Aggiungi</button>
       </div>
     </div>
   </div>

@@ -150,6 +150,37 @@ def api_delete_camera(camera_id):
     return jsonify({"message": f"Telecamera '{camera_id}' rimossa."})
 
 
+@app.route("/api/cameras/<camera_id>", methods=["PUT"])
+def api_update_camera(camera_id):
+    """Aggiorna la configurazione di una telecamera."""
+    data = request.json
+    
+    # Recupera configurazione attuale
+    cam = config_store.get_camera(camera_id)
+    if not cam:
+        return jsonify({"error": "Telecamera non trovata."}), 404
+
+    # Aggiorna campi
+    updates = {}
+    if "name" in data: updates["name"] = data["name"].strip()
+    if "source_type" in data: updates["source_type"] = data["source_type"]
+    if "source" in data: updates["source"] = data["source"].strip()
+    if "interval" in data: updates["interval"] = int(data["interval"])
+    
+    if "analysis_modes" in data: updates["analysis_modes"] = data["analysis_modes"]
+
+    # Salva in config_store
+    config_store.update_camera(camera_id, updates)
+    
+    # Ricarica la configurazione completa
+    new_cam_config = config_store.get_camera(camera_id)
+    
+    # Aggiorna nel camera manager
+    camera_manager.update_camera(camera_id, new_cam_config)
+    
+    return jsonify({"camera": new_cam_config, "message": "Configurazione aggiornata."})
+
+
 @app.route("/api/cameras/<camera_id>/toggle", methods=["PUT"])
 def api_toggle_camera(camera_id):
     """Accende/spegne l'analisi per una telecamera."""

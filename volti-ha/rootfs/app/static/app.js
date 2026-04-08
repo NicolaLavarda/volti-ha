@@ -147,11 +147,14 @@ function renderCameras() {
           </div>
           <div class="camera-info-item">
             <span class="info-label">Intervallo</span>
-            <span class="info-value">${cam.config?.interval || 2}s</span>
+            <span class="info-value">${cam.config?.interval === 0 ? '<span class="text-success">Continuo</span>' : (cam.config?.interval || 2) + 's'}</span>
           </div>
         </div>
         ${cam.last_error ? `<div style="color: var(--danger); font-size: 0.8rem; margin-bottom: 12px;">⚠️ ${cam.last_error}</div>` : ''}
         <div class="camera-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openEditCameraModal('${cam.id}')">
+            ⚙️ Modifica
+          </button>
           <button class="btn btn-danger btn-sm" onclick="deleteCamera('${cam.id}', '${cam.name}')">
             🗑️ Rimuovi
           </button>
@@ -192,6 +195,16 @@ async function deleteCamera(cameraId, name) {
 // ============================
 
 async function openAddCameraModal() {
+  document.getElementById('modalTitle').textContent = '📹 Aggiungi Telecamera';
+  document.getElementById('editCameraId').value = '';
+  document.getElementById('saveCameraButton').textContent = '➕ Aggiungi';
+  
+  // Reset form
+  document.getElementById('cameraName').value = '';
+  document.getElementById('cameraUrl').value = '';
+  document.getElementById('cameraInterval').value = '2';
+  updateIntervalLabel(2);
+
   const modal = document.getElementById('addCameraModal');
   modal.classList.add('visible');
 
@@ -208,8 +221,53 @@ async function openAddCameraModal() {
   switchSourceType('ha_entity');
 }
 
+async function openEditCameraModal(cameraId) {
+  const cam = state.cameras.find(c => c.id === cameraId);
+  if (!cam) return;
+
+  document.getElementById('modalTitle').textContent = `⚙️ Modifica ${cam.name}`;
+  document.getElementById('editCameraId').value = cameraId;
+  document.getElementById('saveCameraButton').textContent = '💾 Salva Modifiche';
+
+  document.getElementById('cameraName').value = cam.name;
+  document.getElementById('cameraInterval').value = cam.config?.interval || 0;
+  updateIntervalLabel(cam.config?.interval || 0);
+
+  if (cam.config?.source_type === 'ha_entity') {
+    switchSourceType('ha_entity');
+    // Carica telecamere HA se non presenti
+    if (state.haCameras.length === 0) {
+      try {
+        const data = await apiCall('/ha-cameras');
+        state.haCameras = data.cameras || [];
+        renderHaCameraSelect();
+      } catch (e) {}
+    }
+    document.getElementById('haCameraSelect').value = cam.config?.source || '';
+  } else {
+    switchSourceType('url');
+    document.getElementById('cameraUrl').value = cam.config?.source || '';
+  }
+
+  document.getElementById('addCameraModal').classList.add('visible');
+}
+
 function closeAddCameraModal() {
   document.getElementById('addCameraModal').classList.remove('visible');
+}
+
+function updateIntervalLabel(value) {
+  const val = parseInt(value);
+  const label = document.getElementById('intervalValue');
+  const hint = document.getElementById('continuousHint');
+  
+  if (val === 0) {
+    label.textContent = 'Continuo';
+    hint.style.display = 'block';
+  } else {
+    label.textContent = val + 's';
+    hint.style.display = 'none';
+  }
 }
 
 function switchSourceType(type) {
@@ -233,9 +291,10 @@ function renderHaCameraSelect() {
     ).join('');
 }
 
-async function addCamera() {
+async function saveCamera() {
+  const editId = document.getElementById('editCameraId').value;
   const name = document.getElementById('cameraName').value.trim();
-  const interval = parseInt(document.getElementById('cameraInterval').value) || 2;
+  const interval = parseInt(document.getElementById('cameraInterval').value);
   let source, source_type;
 
   if (state.addCameraSourceType === 'ha_entity') {
@@ -256,18 +315,24 @@ async function addCamera() {
   }
 
   try {
-    await apiCall('/cameras', {
-      method: 'POST',
-      body: JSON.stringify({ name, source_type, source, interval }),
-    });
-    showToast(`Telecamera "${name}" aggiunta!`, 'success');
+    if (editId) {
+      // UPDATE
+      await apiCall(`/cameras/${editId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name, source_type, source, interval }),
+      });
+      showToast(`Telecamera "${name}" aggiornata!`, 'success');
+    } else {
+      // CREATE
+      await apiCall('/cameras', {
+        method: 'POST',
+        body: JSON.stringify({ name, source_type, source, interval }),
+      });
+      showToast(`Telecamera "${name}" aggiunta!`, 'success');
+    }
+    
     closeAddCameraModal();
     loadCameras();
-
-    // Reset form
-    document.getElementById('cameraName').value = '';
-    document.getElementById('cameraUrl').value = '';
-    document.getElementById('cameraInterval').value = '2';
   } catch (e) {
     showToast(`Errore: ${e.message}`, 'error');
   }
